@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+*.pyo
+
+# Heavy regenerated data (see README for regeneration instructions)
+gedmd_current_len3_sample_*.npz
+cg_data_*.npz
+result_window_*.npz
+q8_data_*.npy
+q8_demon_data_2phase.npz
+gedmd_raw_data.npz
+reconstructed_poincare_data.npz
+*.npy
+
+# Generated figures and logs
+*.png
+*.pdf
+*.gif
+*.log
+
+# OS
+.DS_Store
