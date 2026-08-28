@@ -1,5 +1,4 @@
 # ======================================================================
-# ファイル名: 10_calc_markovian_plateau.py
 # 役割: 粗視化時間 Δt_cg を細かく変化させ、マクロ係数を計算してCSVに保存する
 # ======================================================================
 import glob
@@ -34,8 +33,6 @@ print(f"評価対象フレーム数: {len(eval_frames)} (t = 1.0 ~ 2.5s の平�
 # 検証する cg_steps のリスト (1 から 100 まで細かく振る)
 cg_list = ['exact'] + list(range(1, 102, 2))
 delta_t_list = [0.0 if cg == 'exact' else cg * dt for cg in cg_list]
-#cg_list = list(range(1, 102, 2))
-#delta_t_list = [cg * dt for cg in cg_list]
 
 # ==========================================
 # 2. データの読み込み
@@ -47,7 +44,7 @@ if not file_list:
 
 print(f"全 {len(file_list)} サンプルを読み込み中...")
 all_X_data = [np.load(f)['X_data'] for f in file_list]
-all_dX_data = [np.load(f)['dX_data'] for f in file_list] # 追加
+all_dX_data = [np.load(f)['dX_data'] for f in file_list] # 厳密微分 ('exact') 用
 
 N_Z = 20; N_J = 19; N1 = N_Z + N_J
 rank_tol = 1e-5
@@ -66,8 +63,7 @@ for idx, cg in enumerate(cg_list):
     gamma_frames = []
     nu_frames = []
     
-    delta_t_cg = delta_t_list[idx]  # ← このように書き換えてください
-    #delta_t_cg = cg * dt
+    delta_t_cg = delta_t_list[idx]
     
     for frame in eval_frames:
         t_start = frame * t_step
@@ -86,16 +82,6 @@ for idx, cg in enumerate(cg_list):
             X_next = np.hstack([X[:, start_idx+cg : end_idx+cg] for X in all_X_data])
             dX_coarse = (X_next - X_win) / delta_t_cg
 
-        '''
-        # 配列外参照の防止
-        if end_idx + cg >= all_X_data[0].shape[1]:
-            continue
-            
-        X_win = np.hstack([X[:, start_idx:end_idx] for X in all_X_data])
-        X_next = np.hstack([X[:, start_idx+cg : end_idx+cg] for X in all_X_data])
-        dX_coarse = (X_next - X_win) / delta_t_cg
-        '''
-        
         U, S, Vh = la.svd(X_win, full_matrices=False, lapack_driver='gesvd')
         r = np.sum(S > rank_tol)
         

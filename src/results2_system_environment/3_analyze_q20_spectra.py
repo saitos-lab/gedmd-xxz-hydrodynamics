@@ -32,26 +32,12 @@ num_windows = (num_time_steps - window_size) // stride + 1
 # ==========================================
 # 3. 解析・抽出関数
 # ==========================================
-#def perform_true_gedmd(X, dX, tol=1e-8):
-#    if X.shape[0] == 1:
-#        val = dX[0, 0] / X[0, 0] if abs(X[0,0]) > tol else 0.0
-#        return np.array([val], dtype=complex)
-#    
-#    U, S, Vh = la.svd(X, full_matrices=False, lapack_driver='gesvd')
-#    r = np.sum(S > tol)
-#    if r == 0: return np.array([])
-#    L = dX @ Vh[:r, :].conj().T @ np.diag(1/S[:r]) @ U[:, :r].conj().T
-#    return la.eigvals(L)
-
 def perform_true_gedmd(X, dX, rcond=1e-3):
-    # (※呼び出し元の引数に合わせてデフォルト引数名を tol から rcond に変更しています)
     if X.shape[0] == 1:
         val = dX[0, 0] / X[0, 0] if abs(X[0,0]) > 1e-8 else 0.0
         return np.array([val], dtype=complex)
     
-    # ==========================================
-    # ★ 修正ポイント: 手動SVDをやめ、np.linalg.pinv と rcond=1e-3 を使用
-    # ==========================================
+    # np.linalg.pinv による最小二乗解 (rcond は呼び出し元から渡す。本解析では rank_tol = 1e-8)
     L = dX @ np.linalg.pinv(X, rcond=rcond)
     return la.eigvals(L)
 

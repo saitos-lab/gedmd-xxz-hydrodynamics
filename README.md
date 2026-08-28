@@ -3,7 +3,8 @@
 Reproduction code for
 
 > **Temporal Coarse-Graining as the Origin of Macroscopic Friction in Quantum Spin Chains via Data-Driven Liouvillian Extraction**
-> Seiki Saito, submitted to *Physical Review Research* (2026).
+> Seiki Saito, *Physical Review Research* (2026). DOI: [10.1103/41m6-x2m9](https://doi.org/10.1103/41m6-x2m9)
+> (preprint: [arXiv:2605.05604](https://arxiv.org/abs/2605.05604))
 
 The paper extracts Navier–Stokes hydrodynamic coefficients (elasticity `c²`,
 friction `γ`, kinematic viscosity `ν`) directly from the exact unitary dynamics
@@ -100,8 +101,11 @@ python src/appendixA_scheme/4_plot_time_resolved.py     # Fig. 13
 3. `3_plot_coefficients_vs_time.py` — time evolution across `Δt_cg` (Fig. 8).
 4. `4_calc_markovian_plateau.py` — coefficients vs. `Δt_cg`
    (writes `markovian_plateau_data.csv`); `5_plot_markovian_plateau.py` (Fig. 9).
-5. `6_spatial_profiles_sliding_window.py` — spatial profiles of the bulk under
-   exact vs. coarse-grained differentiation (Fig. 10).
+5. `6_animate_spatial_profiles_exact.py` / `7_animate_spatial_profiles_cg.py` —
+   sliding-window animations of the bulk spatial profiles under exact vs.
+   coarse-grained differentiation (Supplementary Videos 4 and 5). Fig. 10 shows
+   the frame whose window is `t = 0.5 ~ 1.5` of each animation. No parity
+   symmetrization is applied; the raw extracted generator is plotted as-is.
 
 ### Results IV — predictive capability (Fig. 11)
 `1_dict_scan_prediction.py` re-runs the extraction on nested sub-dictionaries

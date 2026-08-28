@@ -1,6 +1,5 @@
 # ======================================================================
 # 比較グラフ生成: 保存した粗視化データを読み込み、1つの図に重ねてプロット
-# ファイル名: 2_plot_cg_comparison.py
 # ======================================================================
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,22 +13,12 @@ dt = 0.002
 
 labels = [
     'Exact Derivative',
-    f'$\Delta t_{\rm cg}$={2*dt:.3f}',
-    f'$\Delta t_{\rm cg}$={5*dt:.3f}',
-    f'$\Delta t_{\rm cg}$={10*dt:.3f}',
-    f'$\Delta t_{\rm cg}$={20*dt:.3f}',
-    f'$\Delta t_{\rm cg}$={50*dt:.3f}'
+    f'$\\Delta t_{{\\rm cg}}$={2*dt:.3f}',
+    f'$\\Delta t_{{\\rm cg}}$={5*dt:.3f}',
+    f'$\\Delta t_{{\\rm cg}}$={10*dt:.3f}',
+    f'$\\Delta t_{{\\rm cg}}$={20*dt:.3f}',
+    f'$\\Delta t_{{\\rm cg}}$={50*dt:.3f}'
 ]
-"""
-labels = [
-    'Exact Derivative',
-    f'cg=2 (Δt={2*dt:.3f})',
-    f'cg=5 (Δt={5*dt:.3f})',
-    f'cg=10 (Δt={10*dt:.3f})',
-    f'cg=20 (Δt={20*dt:.3f})',
-    f'cg=50 (Δt={50*dt:.3f})'
-]
-"""
 colors = ['black', 'blue', 'dodgerblue', 'green', 'orange', 'red']
 linestyles = ['--', '-', '-', '-', '-', '-']
 linewidths = [1.5, 1.5, 1.5, 2.0, 2.0, 2.5]

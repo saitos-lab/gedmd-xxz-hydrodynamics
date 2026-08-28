@@ -1,10 +1,17 @@
+# ======================================================================
+# Sliding-window animation of the bulk spatial profiles (c^2, gamma, nu, D)
+# under the EXACT time derivative (Supplementary Video 4).
+# Fig. 10(a) of the paper is the frame whose window is t = 0.5 ~ 1.5.
+# No parity symmetrization is applied: the raw L_open is used as-is,
+# matching the published figure and video.
+# ======================================================================
 import glob
 import numpy as np
 import scipy.linalg as la
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-print("=== [True Macroscopic Hydro] 観測辞書レベルでのパリティ対称化 ＋ 対称対数プロット ===")
+print("=== [Spatial Profiles] 厳密微分によるマクロ流体アニメーション ===")
 
 # ==========================================
 # 1. パラメータ設定
@@ -30,18 +37,8 @@ print(f"{len(file_list)} 個のサンプルデータをメモリに読み込ん�
 all_X_data = [np.load(f)['X_data'] for f in file_list]
 all_dX_data = [np.load(f)['dX_data'] for f in file_list]
 
-N_Z = 20; N_J = 19; N1 = N_Z + N_J; N2 = 110        
-rank_tol = 1e-4 
-
-# ==========================================
-# ★ 追加: 観測辞書のパリティ(空間反転)変換行列の構築
-# ==========================================
-# Zは位置が反転するだけ
-P_Z = np.fliplr(np.eye(N_Z))
-# Jは位置が反転し、かつ方向が逆転するためマイナスがつく
-P_J = -np.fliplr(np.eye(N_J))
-# S系全体(39次元)のパリティ変換行列
-P_sys = la.block_diag(P_Z, P_J)
+N_Z = 20; N_J = 19; N1 = N_Z + N_J
+rank_tol = 1e-4
 
 # ==========================================
 # 3. アニメーション設定・更新関数の定義
@@ -50,20 +47,20 @@ fig, axes = plt.subplots(4, 1, figsize=(10, 9))
 ax1, ax2, ax3, ax4 = axes
 
 def moving_average(arr, window=4):
-    valid_arr = arr[1:-1] 
+    valid_arr = arr[1:-1]
     if len(valid_arr) < window: return valid_arr
     return np.convolve(valid_arr, np.ones(window)/window, mode='valid')
 
 def update(frame):
     t_start = frame * t_step
     t_end = t_start + tau
-    
+
     start_idx = int(round(t_start / dt))
     end_idx = start_idx + window_steps
-    
+
     X_win = np.hstack([X[:, start_idx:end_idx] for X in all_X_data])
     dX_win = np.hstack([dX[:, start_idx:end_idx] for dX in all_dX_data])
-    
+
     # gEDMD と Mori-Zwanzig 抽出
     U, S, Vh = la.svd(X_win, full_matrices=False, lapack_driver='gesvd')
     r = np.sum(S > rank_tol)
@@ -76,15 +73,10 @@ def update(frame):
             L_open = np.zeros((N1, N1))
     else:
         L_open = np.zeros((N1, N1))
-        
-    # ==========================================
-    # ★ 究極のハック: 方程式（辞書ダイナミクス）自体の完全対称化
-    # ==========================================
-    # 抽出されたL_openに対して、(L + P L P^-1) / 2 を計算する
-    # P_sys は P_sys^-1 = P_sys を満たす直交行列
-    L_open = 0.5 * (L_open + P_sys @ L_open @ P_sys)
 
-    # 係数の抽出（すでにL_openが完全に対称なので、抽出される係数も自然に完全対称になる）
+    # パリティ対称化は行わない (生の L_open をそのまま使用)
+
+    # 係数の抽出
     c2_array = np.zeros(N_J)
     gamma_array = np.zeros(N_J)
     nu_array = np.zeros(N_J)
@@ -109,12 +101,12 @@ def update(frame):
     for idx in range(len(c2_smooth)):
         if abs(gamma_smooth[idx]) > 1e-10:
             D_macro[idx] = c2_smooth[idx] / gamma_smooth[idx]
-    
+
     # === 描画のクリアと再設定 ===
     for ax in axes: ax.clear()
     x_axis = np.arange(len(c2_smooth))
-    
-    fig.suptitle(f"Emergence & Breakdown of Hydrodynamics (Dict-Symmetrized)\n(Window: $\\tau={tau}$, Time: $t = {t_start:.2f} \\sim {t_end:.2f}$)", fontsize=15)
+
+    fig.suptitle(f"Emergence & Breakdown of Hydrodynamics (Exact Derivative)\n(Window: $\\tau={tau}$, Time: $t = {t_start:.2f} \\sim {t_end:.2f}$)", fontsize=15)
 
     ax1.plot(x_axis, c2_smooth, 's-', color='teal', linewidth=2)
     ax1.set_title("Pressure Gradient $c^2$ (Elasticity)", fontsize=12)
@@ -139,10 +131,10 @@ def update(frame):
     ax4.set_yscale('symlog', linthresh=0.1)
     ax4.set_ylim([-1000, 1000])
     ax4.legend(loc='upper right')
-    
+
     plt.tight_layout()
     plt.subplots_adjust(top=0.88)
-    
+
     if (frame+1) % 10 == 0 or (frame+1) == num_frames:
         print(f"Frame {frame+1:03d}/{num_frames} (t={t_start:.2f}) 処理完了")
 
@@ -152,7 +144,7 @@ def update(frame):
 print(f"\n全 {num_frames} フレームのアニメーションを生成します...")
 ani = animation.FuncAnimation(fig, update, frames=num_frames, interval=200)
 
-out_filename_gif = "Fig26_Dict_Symmetrized_Hydrodynamics.gif"
+out_filename_gif = "SupVideo4_Spatial_Profiles_Exact.gif"
 print(f"'{out_filename_gif}' として保存します...")
 ani.save(out_filename_gif, writer='pillow', fps=5, dpi=150)
 print(f"=> '{out_filename_gif}' を出力しました！")

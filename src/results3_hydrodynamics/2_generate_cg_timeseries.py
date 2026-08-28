@@ -1,6 +1,5 @@
 # ======================================================================
 # データ生成・保存: 様々な粗視化時間幅と厳密微分での係数抽出 (対称化なし)
-# ファイル名: 1_generate_cg_data.py
 # ======================================================================
 import glob
 import numpy as np
@@ -36,8 +35,8 @@ def moving_average(arr, window=5):
     return np.convolve(padded_arr, np.ones(window)/window, mode='valid')
 
 # 比較する設定のリスト ('exact' は厳密な時間微分 dX を使用)
-cg_settings = ['exact', 100, 200, 500, 1000]
-#cg_settings = ['exact', 2, 5, 10, 20, 50]
+# 論文 Fig. 8 はこの設定 (Δt_cg = 0.004, 0.01, 0.02, 0.04, 0.10) を使用
+cg_settings = ['exact', 2, 5, 10, 20, 50]
 
 for cg in cg_settings:
     if cg == 'exact':
@@ -88,7 +87,7 @@ for cg in cg_settings:
         else:
             L_open = np.zeros((N1, N1))
             
-        # 対称化は行わない (ご指定通り生のL_openを使用)
+        # パリティ対称化は行わない (生の L_open をそのまま使用)
 
         # 係数抽出
         temp_c2 = np.zeros(N_J); temp_gamma = np.zeros(N_J)

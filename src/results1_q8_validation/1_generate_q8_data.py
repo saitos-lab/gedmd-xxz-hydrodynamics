@@ -1,3 +1,10 @@
+# ======================================================================
+# Results I (Figs. 2-4): 8-qubit homogeneous chaotic XXZ chain.
+# Records X(t) and the exact derivative dX(t) for the macroscopic
+# dictionary A (Z_i + Z_i Z_{i+1}, 15 observables) and the complete
+# Pauli dictionary B (4^8 - 1 = 65,535 observables).
+# Outputs: q8_data_X_A.npy, q8_data_dX_A.npy, q8_data_X_B.npy, q8_data_dX_B.npy
+# ======================================================================
 import time
 import itertools
 import numpy as np
@@ -7,126 +14,111 @@ import scipy.linalg as la
 from qiskit.quantum_info import SparsePauliOp
 
 # ==========================================
-# 1. 設定 (8qubit系: S=2, E=6)
+# 1. 設定 (N=8)
 # ==========================================
 num_qubits = 8
-num_target = 2  # S系のqubit数 (0, 1)
-J = 1.0; Delta = 1.0; J2 = 0.5
-dt = 0.005
-num_steps_phase = 2000 # フェーズごと(孤立/結合)のステップ数
+# XXZモデルのパラメータ
+J = 1.0      # XY平面でのホッピング（スピンの移動）
+Delta = 1.0  # Z方向の隣接相互作用
+J2 = 0.5     # Z方向の次近接相互作用 (可積分性の破壊＝カオスの源)
+evolution_time = 3.0
+num_time_steps = 2000
+dt = evolution_time / num_time_steps
 
-print(f"=== [Data Gen] ラプラスの悪魔 (全自由度: {4**num_qubits - 1}次元) 2フェーズ時間発展 ===")
-
-def make_pauli_str(op_dict, n_qubits):
-    p = ['I'] * n_qubits
-    for idx, char in op_dict.items(): p[idx] = char
-    return "".join(p)[::-1] # Qiskitのエンディアン(右端がq0)に合わせる
+print(f"=== [Data Generation] {num_qubits} Qubit カオス的XXZ 厳密時間発展 ===")
 
 # ==========================================
-# 2. ハミルトニアン構築
+# 2. ハミルトニアン構築 (疎行列化)
 # ==========================================
-print("--- ハミルトニアン構築中 ---")
-pauli_iso = []
+pauli_list = []
 
-# --- S内部 (qubit 0, 1) ---
-pauli_iso.append((make_pauli_str({0:'X', 1:'X'}, num_qubits), J))
-pauli_iso.append((make_pauli_str({0:'Y', 1:'Y'}, num_qubits), J))
-pauli_iso.append((make_pauli_str({0:'Z', 1:'Z'}, num_qubits), Delta))
+# (A) NN: XX + YY 項 (隣接スピンのホッピング)
+for i in range(num_qubits - 1):
+    px = ['I'] * num_qubits; px[i] = 'X'; px[i+1] = 'X'
+    py = ['I'] * num_qubits; py[i] = 'Y'; py[i+1] = 'Y'
+    pauli_list.append(("".join(px)[::-1], J))
+    pauli_list.append(("".join(py)[::-1], J))
 
-# --- E内部 (qubit 2〜7) ---
-for i in range(2, num_qubits - 1): # NN
-    pauli_iso.append((make_pauli_str({i:'X', i+1:'X'}, num_qubits), J))
-    pauli_iso.append((make_pauli_str({i:'Y', i+1:'Y'}, num_qubits), J))
-    pauli_iso.append((make_pauli_str({i:'Z', i+1:'Z'}, num_qubits), Delta))
-for i in range(2, num_qubits - 2): # NNN
-    pauli_iso.append((make_pauli_str({i:'Z', i+2:'Z'}, num_qubits), J2))
+# (B) NN: ZZ 項 (隣接スピン間の相互作用)
+for i in range(num_qubits - 1):
+    pz = ['I'] * num_qubits; pz[i] = 'Z'; pz[i+1] = 'Z'
+    pauli_list.append(("".join(pz)[::-1], Delta))
 
-H_iso_sparse = SparsePauliOp.from_list(pauli_iso).to_matrix(sparse=True)
+# (C) NNN: ZZ 項 (次近接スピン間の相互作用 -> カオス化)
+for i in range(num_qubits - 2):
+    p_nnn = ['I'] * num_qubits; p_nnn[i] = 'Z'; p_nnn[i+2] = 'Z'
+    pauli_list.append(("".join(p_nnn)[::-1], J2))
 
-# --- 相互作用項 (SとEを繋ぐ) ---
-pauli_int = pauli_iso.copy()
-# NN: 境界 (1と2)
-pauli_int.append((make_pauli_str({1:'X', 2:'X'}, num_qubits), J))
-pauli_int.append((make_pauli_str({1:'Y', 2:'Y'}, num_qubits), J))
-pauli_int.append((make_pauli_str({1:'Z', 2:'Z'}, num_qubits), Delta))
-# NNN: 境界をまたぐ (0と2, 1と3)
-pauli_int.append((make_pauli_str({0:'Z', 2:'Z'}, num_qubits), J2))
-pauli_int.append((make_pauli_str({1:'Z', 3:'Z'}, num_qubits), J2))
+H_sparse = SparsePauliOp.from_list(pauli_list).to_matrix(sparse=True)
 
-H_coupled_sparse = SparsePauliOp.from_list(pauli_int).to_matrix(sparse=True)
 
 # ==========================================
-# 3. 全辞書 (65,535次元) の構築
-# ==========================================
-print("--- 観測量行列の構築中 (Sparse行列でメモリ節約) ---")
-labels = ['I', 'X', 'Y', 'Z']
-all_pauli_strs = []
-sub_indices = []
-
-idx = 0
-for p_tuple in itertools.product(labels, repeat=num_qubits):
-    if all(c == 'I' for c in p_tuple): 
-        continue # 単位行列は除外
-    
-    # p_tuple = (q0, q1, q2, ..., q7)
-    p_dict = {i: p_tuple[i] for i in range(num_qubits)}
-    all_pauli_strs.append(make_pauli_str(p_dict, num_qubits))
-    
-    # S系(qubit 0,1)のみのインデックス抽出 (E系であるq2〜q7がすべて'I'のもの)
-    is_S = all(p_tuple[i] == 'I' for i in range(num_target, num_qubits))
-    if is_S:
-        sub_indices.append(idx)
-    
-    idx += 1
-
-ops_sparse = [SparsePauliOp(p).to_matrix(sparse=True) for p in all_pauli_strs]
-print(f"-> 全辞書: {len(ops_sparse)} 次元, Target S部分: {len(sub_indices)} 次元")
-
-# ==========================================
-# 4. 厳密時間発展 (Phase1 -> Phase2)
+# 3. 宇宙の初期化
 # ==========================================
 np.random.seed(42)
 state = (np.random.rand(2**num_qubits) - 0.5) + 1j * (np.random.rand(2**num_qubits) - 0.5)
 state /= la.norm(state)
 
-def evolve_phase(H_sparse, current_state, steps, phase_name):
-    print(f"\n--- {phase_name} 実行中 ---")
-    X = np.zeros((len(ops_sparse), steps))
-    dX = np.zeros((len(ops_sparse), steps))
-    
-    start_time = time.time()
-    for t in range(steps):
-        phi = H_sparse.dot(current_state)
-        
-        # einsumの代わりに、Sparse行列を1つずつforループで処理
-        for k, op in enumerate(ops_sparse):
-            O_psi = op.dot(current_state)
-            X[k, t] = np.real(current_state.conj().T @ O_psi)
-            dX[k, t] = -2.0 * np.imag(phi.conj().T @ O_psi)
-            
-        if (t + 1) % 100 == 0:
-            elapsed = time.time() - start_time
-            print(f"  Step {t + 1}/{steps} 完了... (経過: {elapsed:.1f}s)")
-            
-        if t < steps - 1:
-            current_state = spla.expm_multiply(-1j * H_sparse * dt, current_state)
-            
-    return current_state, X, dX
+# ==========================================
+# 4. 観測辞書の構築
+# ==========================================
+print("\n--- 観測辞書の構築中 ---")
+# 【辞書A】マクロな観測 (15次元)
+dict_A_paulis = []
+for i in range(num_qubits):
+    p = ['I'] * num_qubits; p[i] = 'Z'; dict_A_paulis.append("".join(p)[::-1])
+for i in range(num_qubits - 1):
+    p = ['I'] * num_qubits; p[i] = 'Z'; p[i+1] = 'Z'; dict_A_paulis.append("".join(p)[::-1])
+ops_A_sparse = [SparsePauliOp(p).to_matrix(sparse=True) for p in dict_A_paulis]
 
-# 孤立系 (Phase 1)
-state, X_p1, dX_p1 = evolve_phase(H_iso_sparse, state, num_steps_phase, "Phase 1 (孤立系: t=0.0~10.0)")
+# 【辞書B】完全辞書 (65,535次元)
+dict_B_paulis = []
+for p_tuple in itertools.product(['I', 'X', 'Y', 'Z'], repeat=num_qubits):
+    p_str = "".join(p_tuple)
+    if p_str != 'I' * num_qubits:
+        dict_B_paulis.append(p_str[::-1])
+ops_B_sparse = [SparsePauliOp(p).to_matrix(sparse=True) for p in dict_B_paulis]
 
-# 結合系 (Phase 2)
-state, X_p2, dX_p2 = evolve_phase(H_coupled_sparse, state, num_steps_phase, "Phase 2 (結合系: t=10.0~20.0)")
+print(f"辞書A: {len(ops_A_sparse)} 次元, 辞書B: {len(ops_B_sparse)} 次元")
 
-# データの結合
-X_all = np.hstack([X_p1, X_p2]); dX_all = np.hstack([dX_p1, dX_p2])
-X_sub = X_all[sub_indices, :]; dX_sub = dX_all[sub_indices, :]
+data_X_A  = np.zeros((len(ops_A_sparse), num_time_steps))
+data_dX_A = np.zeros((len(ops_A_sparse), num_time_steps))
+data_X_B  = np.zeros((len(ops_B_sparse), num_time_steps))
+data_dX_B = np.zeros((len(ops_B_sparse), num_time_steps))
 
 # ==========================================
-# 5. データの保存
+# 5. オンザフライ時間発展と超高速微分取得
 # ==========================================
-print("\n--- データの保存中 ---")
-filename = "q8_demon_data_2phase.npz"
-np.savez_compressed(filename, X_all=X_all, dX_all=dX_all, X_sub=X_sub, dX_sub=dX_sub)
-print(f"=> '{filename}' を保存しました。")
+print("\n--- 厳密時間発展と微分値取得を実行中 ---")
+start_time = time.time()
+
+for t_idx in range(num_time_steps):
+    phi = H_sparse.dot(state)
+
+    for k, op in enumerate(ops_A_sparse):
+        O_psi = op.dot(state)
+        data_X_A[k, t_idx] = np.real(state.conj().T @ O_psi)
+        data_dX_A[k, t_idx] = -2.0 * np.imag(phi.conj().T @ O_psi)
+
+    for k, op in enumerate(ops_B_sparse):
+        O_psi = op.dot(state)
+        data_X_B[k, t_idx] = np.real(state.conj().T @ O_psi)
+        data_dX_B[k, t_idx] = -2.0 * np.imag(phi.conj().T @ O_psi)
+
+    if (t_idx + 1) % 200 == 0:
+        print(f"Step {t_idx + 1}/{num_time_steps} 完了... (経過: {time.time() - start_time:.1f}s)")
+
+    if t_idx < num_time_steps - 1:
+        state = spla.expm_multiply(-1j * H_sparse * dt, state)
+
+print(f"時間発展完了: {time.time() - start_time:.2f} 秒")
+
+# ==========================================
+# 6. データの保存 (numpyバイナリ形式)
+# ==========================================
+print("\n--- データをファイルに保存中 ---")
+np.save("q8_data_X_A.npy", data_X_A)
+np.save("q8_data_dX_A.npy", data_dX_A)
+np.save("q8_data_X_B.npy", data_X_B)
+np.save("q8_data_dX_B.npy", data_dX_B)
+print("保存完了。次の解析スクリプトを実行してください。")

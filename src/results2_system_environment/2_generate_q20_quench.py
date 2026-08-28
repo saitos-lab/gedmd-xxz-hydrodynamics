@@ -142,10 +142,10 @@ def collect_3dicts(H_sparse, current_state, steps):
             
     return current_state, (X_S, dX_S), (X_L, dX_L), (X_E, dX_E)
 
-print("\n--- フェーズ1 (孤立系: t=0.0~2.0) データ取得中 ---")
+print("\n--- フェーズ1 (孤立系: t=0.0~4.0) データ取得中 ---")
 state, data_S1, data_L1, data_E1 = collect_3dicts(H_iso, state, num_steps_phase)
 
-print("\n--- フェーズ2 (結合系: t=2.0~4.0) データ取得中 ---")
+print("\n--- フェーズ2 (結合系: t=4.0~8.0) データ取得中 ---")
 state, data_S2, data_L2, data_E2 = collect_3dicts(H_int, state, num_steps_phase)
 
 # データの結合
