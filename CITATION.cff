@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, or a modified version of it, please cite the
+  paper below (preferred-citation).
+type: software
+title: gedmd-xxz-hydrodynamics
+authors:
+  - family-names: Saito
+    given-names: Seiki
+    affiliation: Yamagata University
+license: MIT
+repository-code: https://github.com/saitos-lab/gedmd-xxz-hydrodynamics
+preferred-citation:
+  type: article
+  title: >-
+    Temporal coarse-graining as the origin of macroscopic friction in
+    quantum spin chains via data-driven Liouvillian extraction
+  authors:
+    - family-names: Saito
+      given-names: Seiki
+      affiliation: Yamagata University
+  journal: Physical Review Research
+  year: 2026
+  doi: 10.1103/41m6-x2m9

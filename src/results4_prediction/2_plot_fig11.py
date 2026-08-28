@@ -1,3 +1,11 @@
+# ----------------------------------------------------------------------
+# Part of the reproduction code for:
+#   Seiki Saito, "Temporal coarse-graining as the origin of macroscopic
+#   friction in quantum spin chains via data-driven Liouvillian extraction",
+#   Phys. Rev. Research (2026). DOI: 10.1103/41m6-x2m9
+# If you use this code, or a modified version of it, in your work,
+# please cite the paper above. (MIT License; see LICENSE.)
+# ----------------------------------------------------------------------
 # Fig.11 candidate: dictionary-size convergence & forward-prediction capability
 # (referee comment #1). Data: dict_scan_results.csv / dict_scan_prediction.npz
 import numpy as np

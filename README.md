@@ -130,4 +130,19 @@ MIT — see [LICENSE](LICENSE).
 
 ## Citation
 
-If you use this code, please cite the paper above.
+This code is released under the MIT License. If you use this code, or a
+modified version of it, in your work, please cite the paper:
+
+```bibtex
+@article{Saito2026TemporalCoarseGraining,
+  author  = {Saito, Seiki},
+  title   = {Temporal coarse-graining as the origin of macroscopic friction
+             in quantum spin chains via data-driven Liouvillian extraction},
+  journal = {Physical Review Research},
+  year    = {2026},
+  doi     = {10.1103/41m6-x2m9}
+}
+```
+
+A machine-readable citation is provided in [CITATION.cff](CITATION.cff)
+(GitHub's "Cite this repository" button).

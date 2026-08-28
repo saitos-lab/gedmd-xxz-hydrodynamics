@@ -1,3 +1,11 @@
+# ----------------------------------------------------------------------
+# Part of the reproduction code for:
+#   Seiki Saito, "Temporal coarse-graining as the origin of macroscopic
+#   friction in quantum spin chains via data-driven Liouvillian extraction",
+#   Phys. Rev. Research (2026). DOI: 10.1103/41m6-x2m9
+# If you use this code, or a modified version of it, in your work,
+# please cite the paper above. (MIT License; see LICENSE.)
+# ----------------------------------------------------------------------
 # ======================================================================
 # 役割: CSVデータを読み込み、c^2, gamma, nu, D の4パネルグラフを出力する
 # ======================================================================
